@@ -17,15 +17,14 @@ cvPairs=zeros(count);
 for i=1:count
     for j=1:count
         if i~=j
-        cvPairs(i,j)=(abs(data(i,1)-data(j,1)))/(data(i,2)+data(j,2));
+        cvPairs(i,j) = (abs(data(i,1)-data(j,1)))/(data(i,2)+data(j,2));
         else
-        cvPairs(i,j)=inf;
+        cvPairs(i,j) = nan;
         end
     end
 end
 
-cv=min(min(cvPairs));
-
+cv = min(min(cvPairs));
 %{
 %coefficient of variation
 distancesum = 0;
