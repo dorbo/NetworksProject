@@ -17,7 +17,7 @@ for n = 1:numGraphs
     si = si + floor(numel(checkSize)/2);
 end
 
-numOfPairs = 5;
+numOfPairs = 30;
 CV = zeros(numFeatures);
 for i = 1:numFeatures
     for j = 1:numFeatures
@@ -42,26 +42,28 @@ for i = 1:numFeatures
             sumBeta = sumBeta + beta2(1); 
             sumBeta22 = sumBeta22+ beta2(2);
             pos = pos + numel(dataI);
-            if i==4 && j == 9
-                figure(41)
-                plot(log10(dataI(Good2)),log10(dataJ(Good2)),'*') 
-                hold on
-            end
+%             if i==4 && j == 9
+%                 q = 40
+%                 figure(q)
+%                 plot(log10(dataI(Good2)),log10(dataJ(Good2)),'*') 
+%                 hold on
+%             end
         end
         Good = find(dataJI(:,1) > 0 & dataJI(:,2) >0);
         beta = regress(log10(dataJI(Good,1)), [log10(dataJI(Good,2)) dataJI(Good,3)]);
         M(i,j) = sumBeta / numGraphs; % beta(1);
         beta22 = sumBeta22 / numGraphs;
-        if i==4 && j == 9
-           plot(log10(dataJI(Good,2)), M(i,j) * log10(dataJI(Good,2)) + beta22)
-        end
+%         if i==4 && j == 9
+%            plot(log10(dataJI(Good,2)), M(i,j) * log10(dataJI(Good,2)) + beta22)
+%         end
         % cJI = zeros(max(size(dataIJ)),1);
         cJI = log10(dataJI(Good,1)) - log10(dataJI(Good,2)) * M(i,j);
-        CV(i,j) = calculateCV(cJI, numGraphs, idx(Good)); %%%
+        if i ~= j
+            CV(i,j) = calculateCV(cJI, numGraphs, idx(Good)); %%%
+        end
     end
 end
-% HeatMap(M)
-% HeatMap(CV)
+
 index =  chooseIndex(CV, numOfPairs);
 %%
 % find noGoodK
@@ -146,23 +148,16 @@ end
 % colors = ['r','g','b','y','c','k']
 
 % consts
-for nn = 1:5
-   figure(nn)
-    for n = 1:numGraphs
-            plot(p(nn,flags(n,1):flags(n,2)),zeros(1,flags(n,2)-flags(n,1)+1),'Marker','*','LineStyle','none') %,'Color',colors(n),;
-            hold on
-    end
-end
+% for nn = 1:5
+%    figure(nn)
+%     for n = 1:numGraphs
+%             plot(p(nn,flags(n,1):flags(n,2)),zeros(1,flags(n,2)-flags(n,1)+1),'Marker','*','LineStyle','none') %,'Color',colors(n),;
+%             hold on
+%     end
+% end
 % idx = cluster(gm, a);
 coeff = pca(p');
 a = p'*coeff;
-
-%%
-figure(40)
-for n = 1:numel(graphs)
-    plot(a(flags(n,1):flags(n,2),1),a(flags(n,1):flags(n,2),2),'*')
-    hold on
-end
 
 % idx = kmeans(a(:,1:3)' ,numel(graphs));
 % for k = 1:max(size(a))
@@ -181,17 +176,74 @@ end
 %     addTitle(HMobject,'CV')
 %     plot(HMobject)
 %%
-Z = linkage(p(1,:)','ward','euclidean','savememory','on');
+Z = linkage(p','ward','euclidean','savememory','on');
 idx = cluster(Z,'maxclust',numGraphs);
 Z2 = linkage(a(:,1:3),'ward','euclidean','savememory','on');
 idx2 = cluster(Z2,'maxclust',numGraphs);
 CalcPercent( idx, sizes, flags )
 CalcPercent( idx2, sizes, flags )
 idx3 = kmeans(p, numGraphs);
+
+%% plots
+
+% plot M
+HMobject1 = HeatMap(M);   
+addTitle(HMobject1,'M');
+plot(HMobject1)
+
+% plot CV
+HMobject2 = HeatMap(CV);
+addTitle(HMobject2,'CV');
+plot(HMobject2)
+
+% plot line
+figure('Name','line')
+
+i = index(1,1);
+j = index(1,2);
+dataJI = zeros(si,3);
+beta2 = zeros(2,1);
+sumBeta = 0;
+sumBeta22 = 0;        
+pos = 1;
+
+for n = 1:numGraphs
+    dataJ = textread( [ 'TData/' graphs(n).name '/' features(j).name ], '%f' );
+    dataJ = dataJ(2:2:numel(dataJ));
+    dataI = textread( [ 'TData/' graphs(n).name '/' features(i).name ], '%f' );
+    dataI = dataI(2:2:numel(dataI));
+    
+    Good2 = find(dataJ > 0 & dataI > 0);
+    beta2 = regress(log10(dataJ(Good2)), [log10(dataI(Good2)) ones(numel(Good2),1)]);
+    sumBeta = sumBeta + beta2(1); 
+    sumBeta22 = sumBeta22+ beta2(2);
+    plot(log10(dataI(Good2)),log10(dataJ(Good2)),'*') 
+    hold on
+    
+    dataJI(pos:(pos + numel(dataJ) - 1),1) = dataJ;
+    dataJI(pos:(pos + numel(dataI) - 1),2) = dataI;
+    dataJI(pos:(pos + numel(dataI) - 1),3) = ones(numel(dataI),1);
+            
+    pos = pos + numel(dataI);
+end
+Good = find(dataJI(:,1) > 0 & dataJI(:,2) >0);
+m = sumBeta / numGraphs;
+beta22 = sumBeta22 / numGraphs;
+plot(log10(dataJI(Good,2)), m * log10(dataJI(Good,2)) + beta22)
+
+% plot clusters
+figure('Name', '2dPlot')
+
+for n = 1:numel(graphs)
+    plot(a(flags(n,1):flags(n,2),1),a(flags(n,1):flags(n,2),2),'*')
+    hold on
+end
+
 for k = 1:max(size(a))
     text(a(k,1),a(k,2),num2str(idx(k)));
 end
-% %%
+
+%%
 % % idx3 = kmeans(p, numGraphs);
 % % last_di = 0;
 % distM1 = pdist(a(:,1:3));

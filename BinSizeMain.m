@@ -28,7 +28,6 @@ dbi2_s = zeros(1, numel(binsdata));
 avg1_s = zeros(1, numel(binsdata));
 avg2_s = zeros(1, numel(binsdata));
 
-for q =  1:numBins % [125, 254, 405]
     fprintf('q = %d\n', q)
     s = numFeatures;
     M = zeros(numFeatures);
@@ -68,7 +67,9 @@ for q =  1:numBins % [125, 254, 405]
             M(i,j) = sumBeta / numGraphs; % beta(1);
             % cJI = zeros(max(size(dataIJ)),1);
             cJI = log10(dataJI(Good,1)) - log10(dataJI(Good,2)) * M(i,j);
-            CV(i,j) = calculateCV(cJI, numGraphs, idx(Good)); %%%
+            if i ~= j
+                CV(i,j) = calculateCV(cJI, numGraphs, idx(Good)); %%%
+            end
 
 %             subplot(s,s,(i-1)*s+j)
 %             for tes = 1:numGraphs
@@ -77,6 +78,7 @@ for q =  1:numBins % [125, 254, 405]
 %             end
         end
     end
+
     index =  chooseIndex(CV, numOfPairs);
     sindex = numOfPairs;
 
@@ -186,12 +188,6 @@ for q =  1:numBins % [125, 254, 405]
 %         end
 %     end
 
-%     HMobject = HeatMap(M)    
-%     addTitle(HMobject,'M')
-%     plot(HMobject)
-%     HMobject = HeatMap(CV)
-%     addTitle(HMobject,'CV')
-%     plot(HMobject)
     
     Z = linkage(p','ward','euclidean','savememory','on');
     idx1 = cluster(Z,'maxclust',numGraphs);
@@ -323,15 +319,74 @@ for q =  1:numBins % [125, 254, 405]
     avg1_s(q) = CalcPercent( avg1_idx, sizes, flags );
     avg2_s(q) = CalcPercent( avg2_idx, sizes, flags );
     ss(q) = max(size(idx));
+    %% plots
+
+    % plot M
+    HMobject1 = HeatMap(M);   
+    addTitle(HMobject1,'M');
+    plot(HMobject1)
+    
+    % plot CV
+    HMobject2 = HeatMap(CV);
+    addTitle(HMobject2,'CV');
+    plot(HMobject2)
+    
+    % plot line
+    figure('Name','line')
+
+    i = index(1,1);
+    j = index(1,2);
+    dataJI = zeros(si,3);
+    beta2 = zeros(2,1);
+    sumBeta = 0;
+    sumBeta22 = 0;        
+    pos = 1;
+
+    for n = 1:numGraphs
+        
+        dataJ = textread( [ 'SecData/' binsdata(q).name '/' graphs(n).name '/' features(j).name ], '%f' );
+        dataJ = dataJ(2:2:numel(dataJ));
+        dataI = textread( [ 'SecData/' binsdata(q).name '/' graphs(n).name '/' features(i).name ], '%f' );
+        dataI = dataI(2:2:numel(dataI));
+
+        Good2 = find(dataJ > 0 & dataI > 0);
+        beta2 = regress(log10(dataJ(Good2)), [log10(dataI(Good2)) ones(numel(Good2),1)]);
+        sumBeta = sumBeta + beta2(1); 
+        sumBeta22 = sumBeta22+ beta2(2);
+        plot(log10(dataI(Good2)),log10(dataJ(Good2)),'*') 
+        hold on
+
+        dataJI(pos:(pos + numel(dataJ) - 1),1) = dataJ;
+        dataJI(pos:(pos + numel(dataI) - 1),2) = dataI;
+        dataJI(pos:(pos + numel(dataI) - 1),3) = ones(numel(dataI),1);
+
+        pos = pos + numel(dataI);
+    end
+    Good = find(dataJI(:,1) > 0 & dataJI(:,2) >0);
+    m = sumBeta / numGraphs;
+    beta22 = sumBeta22 / numGraphs;
+    plot(log10(dataJI(Good,2)), m * log10(dataJI(Good,2)) + beta22)
+
+% plot clusters
+%     figure('Name', '2dPlot')
+    figure(q)
+    for n = 1:numel(graphs)
+        plot(a(flags(n,1):flags(n,2),1),a(flags(n,1):flags(n,2),2),'*')
+        hold on
+    end
+
+    for k = 1:max(size(a))
+        text(a(k,1),a(k,2),num2str(idx1(k)));
+    end
 end
 
 %%
-figure('Name','cluster after pca 1:3 + dunns best of 10')
-plot(xs,ys, '*')
-xlabel('Bins Size');
-ylabel('Success Percent');
-ax = gca;
-ax.YLim = [0 100];
+% figure('Name','cluster after pca 1:3 + dunns best of 10')
+% plot(xs,ys, '*')
+% xlabel('Bins Size');
+% ylabel('Success Percent');
+% ax = gca;
+% ax.YLim = [0 100];
 
 % % 
 % % figure('Name','cluster')

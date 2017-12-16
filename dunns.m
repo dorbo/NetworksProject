@@ -5,6 +5,7 @@ function DI=dunns(clusters_number,distM,ind)
 % distM = Dissimilarity matrix
 % ind   = Indexes for each data point aka cluster to which each data point
 % belongs
+% taken from https://www.mathworks.com/matlabcentral/fileexchange/27859-dunn-s-index
 i=clusters_number;
 denominator=[];
 
