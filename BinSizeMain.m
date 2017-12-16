@@ -28,6 +28,7 @@ dbi2_s = zeros(1, numel(binsdata));
 avg1_s = zeros(1, numel(binsdata));
 avg2_s = zeros(1, numel(binsdata));
 
+for q = 1:numBins % [125, 254, 405]
     fprintf('q = %d\n', q)
     s = numFeatures;
     M = zeros(numFeatures);
